@@ -1,0 +1,110 @@
+<?php
+if (!isset($_SESSION)) { session_start(); }
+if(!isset($_SESSION['base_dir']) && !isset($_SESSION['user'])) {
+	header('Location: /login.php');
+	exit;
+	
+}
+?>
+<script src="js/input_mask/jquery.inputmask.js"></script>
+<script>
+$(document).ready(function () {
+
+	$('#cetak-masal').click(function(){
+		if($('#bulan-pajak').val() == null) {
+			$('#modal-cnt').html("<center><br><br>Silahkan Pilih Bulan Pajak<br><br></center>");
+			return;
+		}
+		$('#modal-cnt').html("<center><br><br><img src='images/loading.gif' /><br>Loading<br><br></center>");		
+			$.post( "modul/hotel/gen_pdf_teguran_sptpd_massal.php", { thn_pajak: $('#tahun-pajak').val(), bln_pajak: $('#bulan-pajak').val(), teguran_ke: $('#teguran-ke').val() })
+  						.done(function( data1 ) {
+							$('#modal-cnt').html("<object type='application/pdf' data='"+data1+"' width='100%' height='500'>this is not working as expected</object>");
+  					});
+	});
+	$('#frm-cetak-teguran-stpd').submit(function() {
+  		return false;
+	});
+	$("#no-stpd").inputmask();
+	$(".select2_single").select2({
+                    placeholder: "Pilih",
+                    allowClear: false
+                });
+	$("#bulan-pajak").select2("val", "");
+	
+});
+</script>
+<div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>                                           
+				<h4 class="modal-title" id="myModalLabel">SURAT TEGURAN PENYAMPAIAN SPTPD</h4>
+			</div>
+			<div class="modal-body" id="modal-cnt">
+			
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal" id="batal">Tutup</button>
+			</div>
+		</div>
+	</div>
+</div>
+<form id="frm-cetak-teguran-sptpd" name="frm-cetak-teguran-sptpd" data-parsley-validate class="form-horizontal form-label-left">
+<div class="form-group">
+	<label class="control-label col-md-3 col-sm-3 col-xs-12" for="first-name">No STPD</label>
+    <div class="col-md-6 col-sm-6 col-xs-12">
+    	<input type="text" id="no-stpd" name="no-stpd" class="form-control col-md-7 col-xs-12" placeholder="Nomor STPD" data-inputmask="'mask': '99.9999.99.99.9999'">
+    </div>
+</div>
+<div class="ln_solid"></div>
+	<div class="form-group">
+    	<div class="col-md-9 col-sm-9 col-xs-12 col-md-offset-3">        				
+			<button id="cetak" type="button" class="btn btn-dark" data-toggle="modal" data-target=".bs-example-modal-lg">Cetak Surat Teguran</button>
+		</div>
+	</div>
+</form>
+<div class="ln_solid"></div>
+<form id="frm-restoran-stpd-mas" name="frm-restoran-stpd-mas" data-parsley-validate class="form-horizontal form-label-left">
+<div class="form-group">
+	<label class="control-label col-md-3 col-sm-3 col-xs-12" for="first-name">Tahun Pajak</label>
+    <div class="col-md-6 col-sm-6 col-xs-12">
+    	<select name="tahun-pajak" id="tahun-pajak" class="select2_single" style="width:200px">
+			<?php 
+  	$thn = date('Y')+1;
+  while($thn >= '2017') {
+  	if($thn == date('Y')) {
+    	echo "<option selected=\"selected\" value=\"$thn\">$thn</option>";
+	} else {
+		echo "<option value=\"$thn\">$thn</option>";
+	}
+   	$thn--; 
+   } 
+   ?>
+		</select>
+    </div>
+</div>
+<div class="form-group">
+	<label class="control-label col-md-3 col-sm-3 col-xs-12" for="first-name">Bulan Pajak</label>
+    <div class="col-md-6 col-sm-6 col-xs-12">
+    	<select name="bulan-pajak" id="bulan-pajak" class="select2_single" style="width:200px">
+			<option value="01">Januari</option>
+			<option value="02">Februari</option>
+			<option value="03">Maret</option>
+			<option value="04">April</option>
+			<option value="05">Mei</option>
+			<option value="06">Juni</option>
+			<option value="07">Juli</option>
+			<option value="08">Agustus</option>
+			<option value="09">September</option>
+			<option value="10">Oktober</option>
+			<option value="11">November</option>
+			<option value="12">Desember</option>
+		</select>
+    </div>
+</div>
+
+<div class="form-group">
+    	<div class="col-md-9 col-sm-9 col-xs-12 col-md-offset-3">			
+			<button id="cetak-masal" type="button" class="btn btn-dark" data-toggle="modal" data-target=".bs-example-modal-lg">Cetak Surat Teguran Masal</button>			
+		</div>
+</div>
