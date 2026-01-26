@@ -4,27 +4,27 @@
  * DATABASE HELPER
  * PostgreSQL & Oracle (PDO ONLY)
  * FETCH MODE: OBJECT
+ * NO MULTI CONNECTION (PASS CONNECTION)
  * =====================================================
  */
+
 
 /* =====================================================
  | POSTGRESQL
  * ===================================================== */
 
-function pgsql(): PDO
+/**
+ * Create PostgreSQL connection (call ONCE)
+ */
+
+function oldSimpadPgsql(): PDO
 {
-    static $pdo;
-
-    if ($pdo instanceof PDO) {
-        return $pdo;
-    }
-
-    $dsn  = 'pgsql:host=localhost;port=5432;dbname=simpad';
+    $dsn  = 'pgsql:host=173.16.6.2;port=5432;dbname=simpad';
     $user = 'postgres';
-    $pass = 'password';
+    $pass = 'simpad1!2@';
 
     try {
-        $pdo = new PDO($dsn, $user, $pass, [
+        return new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
             PDO::ATTR_EMULATE_PREPARES   => false,
@@ -33,35 +33,51 @@ function pgsql(): PDO
         error_log($e->getMessage());
         die('PostgreSQL connection error : ' . $e->getMessage());
     }
+}
 
-    return $pdo;
+function pgsql(): PDO
+{
+    $dsn  = 'pgsql:host=localhost;port=5432;dbname=simpad';
+    $user = 'postgres';
+    $pass = 'postgres';
+
+    try {
+        return new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        die('PostgreSQL connection error : ' . $e->getMessage());
+    }
 }
 
 /**
  * Execute INSERT / UPDATE / DELETE
  */
-function pgsql_exec(string $sql, array $params = []): bool
+function pgsql_exec(PDO $conn, string $sql, array $params = []): bool
 {
-    $stmt = pgsql()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     return $stmt->execute($params);
 }
 
 /**
- * Fetch all
+ * Fetch all rows
  */
-function pgsql_all(string $sql, array $params = []): array
+function pgsql_all(PDO $conn, string $sql, array $params = []): array
 {
-    $stmt = pgsql()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchAll();
 }
 
 /**
- * Fetch one
+ * Fetch single row
  */
-function pgsql_one(string $sql, array $params = [])
+function pgsql_one(PDO $conn, string $sql, array $params = [])
 {
-    $stmt = pgsql()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetch();
 }
@@ -70,21 +86,21 @@ function pgsql_one(string $sql, array $params = [])
  * INSERT PostgreSQL
  * ⚠️ WAJIB pakai RETURNING
  */
-function pgsql_insert(string $sql, array $params = [])
+function pgsql_insert(PDO $conn, string $sql, array $params = [])
 {
-    $stmt = pgsql()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchColumn();
 }
 
-function pgsql_update(string $sql, array $params = []): bool
+function pgsql_update(PDO $conn, string $sql, array $params = []): bool
 {
-    return pgsql_exec($sql, $params);
+    return pgsql_exec($conn, $sql, $params);
 }
 
-function pgsql_delete(string $sql, array $params = []): bool
+function pgsql_delete(PDO $conn, string $sql, array $params = []): bool
 {
-    return pgsql_exec($sql, $params);
+    return pgsql_exec($conn, $sql, $params);
 }
 
 
@@ -92,14 +108,11 @@ function pgsql_delete(string $sql, array $params = []): bool
  | ORACLE (PDO OCI)
  * ===================================================== */
 
+/**
+ * Create Oracle connection (call ONCE)
+ */
 function oracle(string $mode = 'SID'): PDO
 {
-    static $pdo;
-
-    if ($pdo instanceof PDO) {
-        return $pdo;
-    }
-
     $host = 'localhost';
     $port = '1521';
     $sid  = 'ORCL';        // SID
@@ -108,13 +121,11 @@ function oracle(string $mode = 'SID'): PDO
     $pass = 'password';
 
     if ($mode === 'SERVICE') {
-        // SERVICE_NAME
         $dsn = "oci:dbname=(DESCRIPTION=
             (ADDRESS=(PROTOCOL=TCP)(HOST=$host)(PORT=$port))
             (CONNECT_DATA=(SERVICE_NAME=$svc))
         );charset=AL32UTF8";
     } else {
-        // SID (default)
         $dsn = "oci:dbname=(DESCRIPTION=
             (ADDRESS=(PROTOCOL=TCP)(HOST=$host)(PORT=$port))
             (CONNECT_DATA=(SID=$sid))
@@ -122,7 +133,7 @@ function oracle(string $mode = 'SID'): PDO
     }
 
     try {
-        $pdo = new PDO($dsn, $user, $pass, [
+        return new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
             // Oracle lebih stabil
@@ -132,45 +143,47 @@ function oracle(string $mode = 'SID'): PDO
         error_log($e->getMessage());
         die('Oracle connection error : ' . $e->getMessage());
     }
-
-    return $pdo;
 }
 
 /**
  * Execute INSERT / UPDATE / DELETE
  */
-function oracle_exec(string $sql, array $params = []): bool
+function oracle_exec(PDO $conn, string $sql, array $params = []): bool
 {
-    $stmt = oracle()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     return $stmt->execute($params);
 }
 
 /**
- * Fetch all
+ * Fetch all rows
  */
-function oracle_all(string $sql, array $params = []): array
+function oracle_all(PDO $conn, string $sql, array $params = []): array
 {
-    $stmt = oracle()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchAll();
 }
 
 /**
- * Fetch one
+ * Fetch single row
  */
-function oracle_one(string $sql, array $params = [])
+function oracle_one(PDO $conn, string $sql, array $params = [])
 {
-    $stmt = oracle()->prepare($sql);
+    $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetch();
 }
 
 /**
- * INSERT Oracle (pakai RETURNING)
+ * INSERT Oracle (RETURNING INTO)
  */
-function oracle_insert(string $sql, array $params = [], ?string $returnField = null)
-{
-    $stmt = oracle()->prepare($sql);
+function oracle_insert(
+    PDO $conn,
+    string $sql,
+    array $params = [],
+    ?string $returnField = null
+) {
+    $stmt = $conn->prepare($sql);
 
     if ($returnField !== null) {
         $id = null;
@@ -186,12 +199,12 @@ function oracle_insert(string $sql, array $params = [], ?string $returnField = n
     return $returnField !== null ? $id : true;
 }
 
-function oracle_update(string $sql, array $params = []): bool
+function oracle_update(PDO $conn, string $sql, array $params = []): bool
 {
-    return oracle_exec($sql, $params);
+    return oracle_exec($conn, $sql, $params);
 }
 
-function oracle_delete(string $sql, array $params = []): bool
+function oracle_delete(PDO $conn, string $sql, array $params = []): bool
 {
-    return oracle_exec($sql, $params);
+    return oracle_exec($conn, $sql, $params);
 }
